@@ -19,12 +19,14 @@ namespace PlatformService
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IWebHostEnvironment env;
+        public IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             Configuration = configuration;
+            this.env = env;
         }
-
-        public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -35,8 +37,17 @@ namespace PlatformService
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "PlatformService", Version = "v1" });
             });
+            if (this.env.IsProduction())
+            {
+                Console.WriteLine($"Using SQL Server db");
+                services.AddDbContext<AppDbContext>(options => options.UseSqlServer(this.Configuration.GetConnectionString("PlatformsConnectionString")));
+            }
+            else
+            {
+                Console.WriteLine($"Using in Memory db");
+                services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("InMemory"));
+            }
 
-            services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("InMemory"));
             services.AddScoped<IPlatformRepo, PlatformRepo>();
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddHttpClient<ICommandDataClient, HttpCommandDataClient>();
@@ -64,7 +75,7 @@ namespace PlatformService
                 endpoints.MapControllers();
             });
 
-            SeedData.SeedDataForTest(app);
+            SeedData.SeedDataForTest(app, env.IsProduction());
         }
     }
 }
