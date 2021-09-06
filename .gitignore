@@ -1,2 +1,5 @@
 PlatformService/bin
 PlatformService/obj
+CommandsService/obj
+CommandsService/bin
+CommandsService/.vscode
